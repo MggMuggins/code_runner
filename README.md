@@ -13,3 +13,5 @@ This repository requires a token.json (located in res/token.json). The file shou
 
 # Docker
 This bot uses docker on the backend to run commands. These docker images are minimal, and all should be based on Alpine Linux. For now, observe what is done in the source in terms of how to set up a new language. If somebody has more experience with docker and knows that I'm doing something dumb, please open an issue!
+
+Note that changes in `handler.rs` are required in addition to a Dockerfile.

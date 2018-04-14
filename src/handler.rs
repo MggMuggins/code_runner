@@ -9,7 +9,7 @@ use serenity::prelude::{Context, EventHandler};
 
 use DOCKER_DIR;
 
-const VALID_LANGS: [&str; 1] = ["python"];
+const VALID_LANGS: [&str; 3] = ["python", "ruby", "javascript"];
 
 pub struct CodeRunnerHandler {
     bot_id: u64
@@ -106,6 +106,8 @@ fn run_docker(language_prefix: String, code: String) -> Result<String, Error> {
     let output = Command::new("docker")
         .arg("run")
         .arg(&tag)
+        //.arg("--memory=\"500m\"")
+        //.arg("--cpus=\".5\"")
         .output()?;
     
     Ok("Stdout:```\n".to_owned()
