@@ -1,7 +1,15 @@
+use std::fs::File;
+use std::io::Write;
+use std::path::PathBuf;
+use std::process::Command;
+
+use failure::Error;
 use serenity::model::channel::Message;
 use serenity::prelude::{Context, EventHandler};
 
-use language::{Language, Python};
+use DOCKER_DIR;
+
+const VALID_LANGS: [&str; 1] = ["python"];
 
 pub struct CodeRunnerHandler {
     bot_id: u64
@@ -64,11 +72,45 @@ impl Code {
     }
     
     fn run(self) -> String {
-        let language = match self.language.as_str() {
-            "python" => Python::new(self.code),
-            _ => return "Language not found".to_string()
-        };
-        language.run()
-            .unwrap_or_else(|err| err.cause().to_string())
+        if !VALID_LANGS.contains(&self.language.as_str()) {
+            "Language not found".to_string()
+        } else {
+            run_docker(self.language, self.code)
+                .unwrap_or_else(|err| err.cause().to_string())
+        }
     }
+}
+
+fn run_docker(language_prefix: String, code: String) -> Result<String, Error> {
+    let working_docker_dir: PathBuf = [DOCKER_DIR, &language_prefix].iter().collect();
+    let working_docker_dir = working_docker_dir.to_str()
+        .unwrap_or_else(|| return "Some path wasn't utf8!");
+    
+    // The name of the file that contains the code
+    let filename: PathBuf = [working_docker_dir, "code"].iter().collect();
+    
+    // Tag for the docker container
+    let tag = language_prefix + "_runner";
+    
+    // Write the code to the file to be built into the container
+    let mut file = File::create(&filename)?;
+    file.write(code.as_bytes())?;
+    
+    let _build_output = Command::new("docker")
+        .arg("build")
+        .arg("-t")
+        .arg(&tag)
+        .arg(working_docker_dir)
+        .output()?;
+    
+    let output = Command::new("docker")
+        .arg("run")
+        .arg(&tag)
+        .output()?;
+    
+    Ok("Stdout:```\n".to_owned()
+        + &String::from_utf8(output.stdout)?
+        + &"\n```\nStderr:```\n".to_owned()
+        + &String::from_utf8(output.stderr)?
+        + &"\n```")
 }

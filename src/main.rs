@@ -6,7 +6,6 @@ extern crate serde_json;
 extern crate failure;
 
 mod handler;
-mod language;
 
 use std::process::exit;
 use std::fs::File;
