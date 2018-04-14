@@ -21,31 +21,32 @@ const TOKEN_JSON: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/res/token.json");
 #[cfg(release)]
 const TOKEN_JON: &str = "";
 
-fn get_discord_token() -> Result<String, Error> {
-    #[derive(Serialize, Deserialize)]
-    struct Token {
-        token: String
-    }
-    
+#[derive(Serialize, Deserialize)]
+struct JsonInfo {
+    token: String,
+    bot_id: u64
+}
+
+fn get_json_info() -> Result<JsonInfo, Error> {
     // File read
     let mut json = String::new();
     File::open(TOKEN_JSON)?.read_to_string(&mut json)?;
     
-    let token: Token = serde_json::from_str(&json)?;
-    Ok(token.token)
+    let info: JsonInfo = serde_json::from_str(&json)?;
+    Ok(info)
 }
 
 fn main() {
-    let token = get_discord_token().unwrap_or_else(|err| {
+    let token = get_json_info().unwrap_or_else(|err| {
         eprintln!("Unavailable Discord token: {:?}", err);
         exit(1)
     });
-    println!("Token: {}", token);
     
-    let mut client = Client::new(&token, CodeRunnerHandler).unwrap_or_else(|err| {
-        eprintln!("Err creating client: {:?}", err);
-        exit(1)
-    });
+    let mut client = Client::new(&token.token, CodeRunnerHandler::new(token.bot_id))
+        .unwrap_or_else(|err| {
+            eprintln!("Err creating client: {:?}", err);
+            exit(1)
+        });
     
     client.start().unwrap_or_else(|err| {
         eprintln!("Err running client: {:?}", err);
