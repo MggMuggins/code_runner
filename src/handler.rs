@@ -24,10 +24,10 @@ impl EventHandler for CodeRunnerHandler {
             } else {
                 let first = matches[0].0;
                 let second = matches[1].0 + 3;
-                let code = Code::new(&msg.content[first..second]);
+                let code = Code::new(msg.content[first..second].to_string());
                 
                 println!("{:?}", &code);
-                msg.channel_id.say(code.block + &code.language);
+                msg.channel_id.say(code.run());
             }
         }
     }
@@ -48,7 +48,7 @@ struct Code {
 }
 
 impl Code {
-    fn new(block: &str) -> Code {
+    fn new(block: String) -> Code {
         let (firstline_end, _) = block.to_string().match_indices('\n').next().unwrap();
         
         let language = &block[3..firstline_end];
@@ -63,11 +63,12 @@ impl Code {
         }
     }
     
-    fn get_language<L>(&self) -> Option<Language> {
-      //where L: Language {
-        match self.language.as_str() {
-            "python" => Some(Python::new(self.code)),
-            _ => None
-        }
+    fn run(self) -> String {
+        let language = match self.language.as_str() {
+            "python" => Python::new(self.code),
+            _ => return "Language not found".to_string()
+        };
+        language.run()
+            .unwrap_or_else(|err| err.cause().to_string())
     }
 }

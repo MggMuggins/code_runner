@@ -22,6 +22,11 @@ const TOKEN_JSON: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/res/token.json");
 #[cfg(release)]
 const TOKEN_JON: &str = "";
 
+#[cfg(not(release))]
+const DOCKER_DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/docker");
+#[cfg(release)]
+const DOCKER_DIR: &str = "";
+
 #[derive(Serialize, Deserialize)]
 struct JsonInfo {
     token: String,
