@@ -6,6 +6,7 @@ use std::process::Command;
 use failure::Error;
 use serenity::model::channel::Message;
 use serenity::prelude::{Context, EventHandler};
+use rand::random;
 
 use DOCKER_DIR;
 
@@ -90,7 +91,8 @@ fn run_docker(language_prefix: String, code: String) -> Result<String, Error> {
     let filename: PathBuf = [working_docker_dir, "code"].iter().collect();
     
     // Tag for the docker container
-    let tag = language_prefix + "_runner";
+    let tag = "runner_".to_string() + &language_prefix;
+    let container_name = random::<u64>().to_string() + &language_prefix;
     
     // Write the code to the file to be built into the container
     let mut file = File::create(&filename)?;
@@ -105,14 +107,38 @@ fn run_docker(language_prefix: String, code: String) -> Result<String, Error> {
     
     let output = Command::new("docker")
         .arg("run")
+        .arg("--memory=500m")
+        .arg("--cpus=.5")
+        .arg("--name=".to_string() + &container_name)
         .arg(&tag)
-        //.arg("--memory=\"500m\"")
-        //.arg("--cpus=\".5\"")
         .output()?;
     
+    Command::new("docker")
+        .arg("rm")
+        .arg(container_name)
+        .spawn()?;
+    
+    let mut stdout = String::from_utf8(output.stdout)?;
+    escape_graves(&mut stdout);
+    let mut stderr = String::from_utf8(output.stderr)?;
+    escape_graves(&mut stderr);
+    
     Ok("Stdout:```\n".to_owned()
-        + &String::from_utf8(output.stdout)?
+        + &stdout
         + &"\n```\nStderr:```\n".to_owned()
-        + &String::from_utf8(output.stderr)?
+        + &stderr
         + &"\n```")
+}
+
+fn escape_graves(text: &mut String) {
+    let first = {
+        let matches: Vec<_> = text.match_indices("```").collect();
+        if matches.len() == 0 {
+            return;
+        }
+        matches[0].0
+    };
+    
+    text.insert(first + 2, '\\');
+    escape_graves(text);
 }

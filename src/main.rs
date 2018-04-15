@@ -4,6 +4,7 @@ extern crate serde;
 extern crate serde_derive;
 extern crate serde_json;
 extern crate failure;
+extern crate rand;
 
 mod handler;
 
@@ -19,12 +20,12 @@ use handler::CodeRunnerHandler;
 #[cfg(not(release))]
 const TOKEN_JSON: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/res/token.json");
 #[cfg(release)]
-const TOKEN_JON: &str = "";
+const TOKEN_JON: &str = "~/.local/share/cargo/data/code_runner/token.json";
 
 #[cfg(not(release))]
 const DOCKER_DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/docker");
 #[cfg(release)]
-const DOCKER_DIR: &str = "";
+const DOCKER_DIR: &str = "~/.local/share/cargo/data/code_runner/docker";
 
 #[derive(Serialize, Deserialize)]
 struct JsonInfo {
@@ -43,7 +44,7 @@ fn get_json_info() -> Result<JsonInfo, Error> {
 
 fn main() {
     let token = get_json_info().unwrap_or_else(|err| {
-        eprintln!("Unavailable Discord token: {:?}", err);
+        eprintln!("Unavailable Config File: {:?}", err);
         exit(1)
     });
     
