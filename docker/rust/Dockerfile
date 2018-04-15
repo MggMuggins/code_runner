@@ -7,7 +7,7 @@ ADD --chown=coder:coder code /home/coder/code.rs
 WORKDIR /home/coder
 
 RUN sed -i '1s/^/fn main() {\n/' code.rs
-RUN sed -i '\$a}' code.rs
+RUN { cat code.rs; echo '}'; } > code.rs
 
 USER coder:coder
 
