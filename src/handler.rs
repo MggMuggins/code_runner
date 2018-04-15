@@ -10,7 +10,7 @@ use rand::random;
 
 use DOCKER_DIR;
 
-const VALID_LANGS: [&str; 3] = ["python", "ruby", "javascript"];
+const VALID_LANGS: [&str; 5] = ["python", "ruby", "javascript", "rust", "sh"];
 
 pub struct CodeRunnerHandler {
     bot_id: u64
@@ -108,7 +108,10 @@ fn run_docker(language_prefix: String, code: String) -> Result<String, Error> {
     let output = Command::new("docker")
         .arg("run")
         .arg("--memory=500m")
-        .arg("--cpus=.5")
+        //.arg("--cpu-rt-runtime")
+        //.arg("--cpus='.5'")
+        .arg("--cpu-period=100000")
+        .arg("--cpu-quota=50000")
         .arg("--name=".to_string() + &container_name)
         .arg(&tag)
         .output()?;
@@ -122,6 +125,10 @@ fn run_docker(language_prefix: String, code: String) -> Result<String, Error> {
     escape_graves(&mut stdout);
     let mut stderr = String::from_utf8(output.stderr)?;
     escape_graves(&mut stderr);
+
+    if stdout == "" {
+        stdout = " ".to_string();
+    }
     
     Ok("Stdout:```\n".to_owned()
         + &stdout
