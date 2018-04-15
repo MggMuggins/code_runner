@@ -12,6 +12,6 @@ RUN { cat code.rs; echo '}'; } > code.rs
 USER coder:coder
 
 CMD ["rustc", "code.rs"]
-CMD ["code"]
+CMD ["./code"]
 
 USER root:root
