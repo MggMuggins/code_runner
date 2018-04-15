@@ -1,4 +1,4 @@
-FROM frolvlad/alpine-rust
+FROM frolvlad/alpine-rust:latest
 
 RUN adduser coder -h /home/coder -D
 
@@ -15,4 +15,3 @@ CMD ["rustc", "code.rs"]
 CMD ["code"]
 
 USER root:root
-

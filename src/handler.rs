@@ -107,11 +107,13 @@ fn run_docker(language_prefix: String, code: String) -> Result<String, Error> {
     
     let output = Command::new("docker")
         .arg("run")
-        .arg("--memory=500m")
+        .arg("--memory=300m")
         //.arg("--cpu-rt-runtime")
         //.arg("--cpus='.5'")
-        .arg("--cpu-period=100000")
-        .arg("--cpu-quota=50000")
+        //.arg("--cpu-period=100000")
+        //.arg("--cpu-quota=50000")
+        // Low as we can
+        .arg("--cpu-shares=1")
         .arg("--name=".to_string() + &container_name)
         .arg(&tag)
         .output()?;
