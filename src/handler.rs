@@ -6,7 +6,6 @@ use std::process::Command;
 use failure::Error;
 use serenity::model::channel::Message;
 use serenity::prelude::{Context, EventHandler};
-use rand::random;
 
 use DOCKER_DIR;
 
@@ -87,12 +86,11 @@ fn run_docker(language_prefix: String, code: String) -> Result<String, Error> {
     let working_docker_dir = working_docker_dir.to_str()
         .unwrap_or_else(|| return "Some path wasn't utf8!");
     
-    // The name of the file that contains the code
+    // The name of the file that contains the code to be run
     let filename: PathBuf = [working_docker_dir, "code"].iter().collect();
     
     // Tag for the docker container
     let tag = "runner_".to_string() + &language_prefix;
-    let container_name = random::<u64>().to_string() + &language_prefix;
     
     // Write the code to the file to be built into the container
     let mut file = File::create(&filename)?;
