@@ -10,7 +10,7 @@ use rand::random;
 
 use DOCKER_DIR;
 
-const VALID_LANGS: [&str; 6] = ["python", "ruby", "javascript", "rust", "sh", "d", "brainfuck"];
+const VALID_LANGS: [&str; 7] = ["python", "ruby", "javascript", "rust", "sh", "d", "brainfuck"];
 
 pub struct CodeRunnerHandler {
     bot_id: u64
