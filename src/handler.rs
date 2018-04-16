@@ -98,45 +98,55 @@ fn run_docker(language_prefix: String, code: String) -> Result<String, Error> {
     let mut file = File::create(&filename)?;
     file.write(code.as_bytes())?;
     
-    let _build_output = Command::new("docker")
+    let build_output = Command::new("docker")
         .arg("build")
         .arg("-t")
         .arg(&tag)
         .arg(working_docker_dir)
         .output()?;
     
+    if !build_output.status.success() {
+        let mut stdout = String::from_utf8(build_output.stdout)?;
+        escape_graves(&mut stdout);
+        let mut stderr = String::from_utf8(build_output.stderr)?;
+        escape_graves(&mut stderr);
+        
+        return Ok("Docker Build Error, Stdout:```\n".to_owned()
+            + &stdout
+            + &"\n```\nStderr:```\n".to_owned()
+            + &stderr
+            + &"\n```")
+    }
+    
     let output = Command::new("docker")
         .arg("run")
         .arg("--memory=300m")
-        //.arg("--cpu-rt-runtime")
-        //.arg("--cpus='.5'")
-        //.arg("--cpu-period=100000")
-        //.arg("--cpu-quota=50000")
         // Low as we can
         .arg("--cpu-shares=2")
-        .arg("--name=".to_string() + &container_name)
+        .arg("--rm")
         .arg(&tag)
         .output()?;
-    
-    Command::new("docker")
-        .arg("rm")
-        .arg(container_name)
-        .spawn()?;
     
     let mut stdout = String::from_utf8(output.stdout)?;
     escape_graves(&mut stdout);
     let mut stderr = String::from_utf8(output.stderr)?;
     escape_graves(&mut stderr);
 
-    if stdout == "" {
-        stdout = " ".to_string();
+    if stdout.trim() == "" {
+        Ok("\n```\n".to_owned()
+            + &stderr
+            + &"\n```")
+    } else if stderr.trim() == "" {
+        Ok("\n```\n".to_owned()
+            + &stdout
+            + &"\n```")
+    } else {
+        Ok("Stdout:```\n".to_owned()
+            + &stdout
+            + &"\n```\nStderr:```\n".to_owned()
+            + &stderr
+            + &"\n```")
     }
-    
-    Ok("Stdout:```\n".to_owned()
-        + &stdout
-        + &"\n```\nStderr:```\n".to_owned()
-        + &stderr
-        + &"\n```")
 }
 
 fn escape_graves(text: &mut String) {
