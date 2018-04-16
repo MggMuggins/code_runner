@@ -5,6 +5,8 @@ use std::process::Command;
 
 use failure::Error;
 use serenity::model::channel::Message;
+use serenity::model::event::MessageUpdateEvent;
+use serenity::model::id::ChannelId;
 use serenity::prelude::{Context, EventHandler};
 
 use DOCKER_DIR;
@@ -19,24 +21,32 @@ impl CodeRunnerHandler {
     pub fn new(bot_id: u64) -> CodeRunnerHandler {
         CodeRunnerHandler { bot_id }
     }
+    
+    fn run_code_from(&self, content: String, channel_id: ChannelId) {
+        let code = match Code::new(content) {
+            Ok(code) => code,
+            Err(errmsg) => {
+                let _err = channel_id.say(errmsg);
+                return;
+            }
+        };
+        let _err = channel_id.say(code.run());
+    }
 }
 
 impl EventHandler for CodeRunnerHandler {
     fn message(&self, _: Context, msg: Message) {
         if msg.mentions.iter().any(|user| user.id == self.bot_id) {
-            
-            let matches: Vec<_> = msg.content.match_indices("```").collect();
-            
-            if matches.len() != 2 {
-                msg.channel_id.say("I need exactly 1 markdown code block please!");
-            } else {
-                let first = matches[0].0;
-                let second = matches[1].0 + 3;
-                let code = Code::new(msg.content[first..second].to_string());
-                
-                println!("{:?}", &code);
-                msg.channel_id.say(code.run());
-            }
+            self.run_code_from(msg.content, msg.channel_id);
+        }
+    }
+    
+    fn message_update(&self, _: Context, msg: MessageUpdateEvent) {
+        let mentions = msg.mentions.unwrap();
+        let content = msg.content.unwrap();
+        
+        if mentions.iter().any(|user| user.id == self.bot_id) {
+            self.run_code_from(content, msg.channel_id);
         }
     }
 }
@@ -56,7 +66,19 @@ struct Code {
 }
 
 impl Code {
-    fn new(block: String) -> Code {
+    fn new(block: String) -> Result<Code, String> {
+        let matches: Vec<_> = block.match_indices("```").collect();
+        
+        if matches.len() != 2 {
+            Err("I need exactly 1 markdown code block please!".to_string())
+        } else {
+            let first = matches[0].0;
+            let second = matches[1].0 + 3;
+            Ok(Code::from_block(block[first..second].to_string()))
+        }
+    }
+    
+    fn from_block(block: String) -> Code {
         let (firstline_end, _) = block.to_string().match_indices('\n').next().unwrap();
         
         let language = &block[3..firstline_end];
