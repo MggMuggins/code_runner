@@ -1,7 +1,8 @@
-use std::fs::File;
+use std::ffi::OsStr;
+use std::fs::{File, read_dir};
 use std::io::Write;
 use std::path::PathBuf;
-use std::process::Command;
+use std::process::{Command, Output};
 
 use failure::Error;
 use serenity::model::channel::Message;
@@ -10,8 +11,6 @@ use serenity::model::id::ChannelId;
 use serenity::prelude::{Context, EventHandler};
 
 use DOCKER_DIR;
-
-const VALID_LANGS: [&str; 7] = ["python", "ruby", "javascript", "rust", "sh", "d", "brainfuck"];
 
 pub struct CodeRunnerHandler {
     bot_id: u64
@@ -42,8 +41,8 @@ impl EventHandler for CodeRunnerHandler {
     }
     
     fn message_update(&self, _: Context, msg: MessageUpdateEvent) {
-        let mentions = msg.mentions.unwrap();
-        let content = msg.content.unwrap();
+        let mentions = msg.mentions.unwrap_or(Vec::new());
+        let content = msg.content.unwrap_or(String::new());
         
         if mentions.iter().any(|user| user.id == self.bot_id) {
             self.run_code_from(content, msg.channel_id);
@@ -94,7 +93,17 @@ impl Code {
     }
     
     fn run(self) -> String {
-        if !VALID_LANGS.contains(&self.language.as_str()) {
+        let language_found = if let Ok(mut dir) = read_dir(DOCKER_DIR) {
+            dir.any(|entry| if let Ok(entry) = entry {
+                entry.file_name() == OsStr::new(&self.language)
+            } else {
+                false
+            })
+        } else {
+            false
+        };
+        
+        if !language_found {
             "Language not found".to_string()
         } else {
             run_docker(self.language, self.code)
@@ -126,16 +135,7 @@ fn run_docker(language_prefix: String, code: String) -> Result<String, Error> {
         .output()?;
     
     if !build_output.status.success() {
-        let mut stdout = String::from_utf8(build_output.stdout)?;
-        escape_graves(&mut stdout);
-        let mut stderr = String::from_utf8(build_output.stderr)?;
-        escape_graves(&mut stderr);
-        
-        return Ok("Docker Build Error, Stdout:```\n".to_owned()
-            + &stdout
-            + &"\n```\nStderr:```\n".to_owned()
-            + &stderr
-            + &"\n```")
+        return get_output_string(build_output);
     }
     
     let output = Command::new("docker")
@@ -147,6 +147,10 @@ fn run_docker(language_prefix: String, code: String) -> Result<String, Error> {
         .arg(&tag)
         .output()?;
     
+    get_output_string(output)
+}
+
+fn get_output_string(output: Output) -> Result<String, Error> {
     let mut stdout = String::from_utf8(output.stdout)?;
     escape_graves(&mut stdout);
     let mut stderr = String::from_utf8(output.stderr)?;
