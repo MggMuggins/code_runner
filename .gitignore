@@ -1,4 +1,5 @@
 res/token.json
+res/languages.yml
 docker/*/code
 /target
 **/*.rs.bk

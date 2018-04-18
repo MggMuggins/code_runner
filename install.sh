@@ -13,6 +13,9 @@ if [ $is_cargo_installed -a $is_docker_installed ]; then
     
     cargo install --force
     
+    cd "${CARGO_DATA_DIR}"
+    wget "https://raw.githubusercontent.com/github/linguist/master/lib/linguist/languages.yml"
+    
     echo "You need to place ${CARGO_DATA_DIR}token.json"
 else
     echo "Install Cargo!"

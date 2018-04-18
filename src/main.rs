@@ -3,6 +3,7 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_json;
+extern crate serde_yaml;
 extern crate failure;
 
 mod handler;
@@ -25,6 +26,11 @@ const TOKEN_JON: &str = "~/.local/share/cargo/data/code_runner/token.json";
 const DOCKER_DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/docker");
 #[cfg(release)]
 const DOCKER_DIR: &str = "~/.local/share/cargo/data/code_runner/docker";
+
+#[cfg(not(release))]
+const F_LANGUAGES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/res/languages.yml");
+#[cfg(release)]
+const F_LANGUAGES: &str = "~/.local/share/cargo/data/code_runner/languages.yml";
 
 #[derive(Serialize, Deserialize)]
 struct JsonInfo {

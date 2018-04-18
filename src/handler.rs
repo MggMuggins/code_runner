@@ -1,6 +1,7 @@
+use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::fs::{File, read_dir};
-use std::io::Write;
+use std::io::{Read, Write};
 use std::path::PathBuf;
 use std::process::{Command, Output};
 
@@ -10,7 +11,9 @@ use serenity::model::event::MessageUpdateEvent;
 use serenity::model::id::ChannelId;
 use serenity::prelude::{Context, EventHandler};
 
-use DOCKER_DIR;
+use serde_yaml::from_str;
+
+use {DOCKER_DIR, F_LANGUAGES};
 
 pub struct CodeRunnerHandler {
     bot_id: u64
@@ -93,9 +96,12 @@ impl Code {
     }
     
     fn run(self) -> String {
+        //TODO: This is a mess, rewrite
         let language_found = if let Ok(mut dir) = read_dir(DOCKER_DIR) {
             dir.any(|entry| if let Ok(entry) = entry {
-                entry.file_name() == OsStr::new(&self.language)
+                let language = canonicalize_lang(&self.language)
+                    .unwrap_or_else(|err| return format!("Err Occurred: {}", err));
+                entry.file_name() == OsStr::new(&language)
             } else {
                 false
             })
@@ -184,4 +190,36 @@ fn escape_graves(text: &mut String) {
     
     text.insert(first + 2, '\\');
     escape_graves(text);
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct Language {
+    aliases: Option<Vec<String>>
+}
+
+fn canonicalize_lang<S: AsRef<str>>(alias: S) -> Result<String, Error> {
+    let mut file = File::open(F_LANGUAGES)?;
+    let mut contents = String::new();
+    file.read_to_string(&mut contents)?;
+    
+    // Deserialize lingust's languages.yml
+    let mut langs: HashMap<String, Language> = from_str(&contents)?;
+    // Convert that into `aliases` (see type annotation)
+    langs.retain(|_, lang| lang.aliases.is_some());
+    let mut aliases: HashMap<String, String> = HashMap::new();
+    
+    for (name, lang) in langs.drain() {
+        // Safe because of the retain call above
+        for alias in lang.aliases.unwrap() {
+            aliases.insert(alias.to_lowercase(), name.to_lowercase().to_owned());
+        }
+    }
+    
+    let alias = alias.as_ref().to_lowercase();
+    
+    if let Some(language) = aliases.get(&alias) {
+        Ok(language.to_string())
+    } else {
+        Ok(alias)
+    }
 }
