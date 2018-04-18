@@ -96,24 +96,22 @@ impl Code {
     }
     
     fn run(self) -> String {
-        //TODO: This is a mess, rewrite
-        let language_found = if let Ok(mut dir) = read_dir(DOCKER_DIR) {
-            dir.any(|entry| if let Ok(entry) = entry {
-                let language = canonicalize_lang(&self.language)
-                    .unwrap_or_else(|err| return format!("Err Occurred: {}", err));
-                entry.file_name() == OsStr::new(&language)
-            } else {
-                false
-            })
-        } else {
-            false
-        };
+        let language = canonicalize_lang(&self.language)
+            .unwrap_or_else(|err| return format!("Err Occurred: {}", err));
         
-        if !language_found {
-            "Language not found".to_string()
-        } else {
-            run_docker(self.language, self.code)
+        let dir = match read_dir(DOCKER_DIR) {
+            Ok(dir) => dir,
+            Err(err) => return format!("Err Occurred: {}", err)
+        };
+        let language_found = dir.filter(Result::is_ok)
+            .map(Result::unwrap)
+            .any(|entry| entry.file_name() == OsStr::new(&language));
+        
+        if language_found {
+            run_docker(language, self.code)
                 .unwrap_or_else(|err| err.cause().to_string())
+        } else {
+            "Language not found".to_string()
         }
     }
 }
