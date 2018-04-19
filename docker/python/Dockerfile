@@ -7,6 +7,6 @@ ADD --chown=coder:coder code /home/coder/code.py
 WORKDIR /home/coder
 
 USER coder:coder
-CMD ["python", "code.py"]
+CMD ["timeout", "20m", "python", "code.py"]
 
 USER root:root
