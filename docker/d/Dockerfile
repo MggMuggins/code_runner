@@ -11,6 +11,6 @@ RUN sed -i '$s/$/\n}/' code.d
 
 USER coder:coder
 
-CMD ["timeout", "20m", "/bin/sh", "-c", "dmd code.d && /home/coder/code"]
+CMD ["timeout", "-t", "1200", "/bin/sh", "-c", "dmd code.d && /home/coder/code"]
 
 USER root:root

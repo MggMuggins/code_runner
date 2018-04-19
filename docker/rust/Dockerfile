@@ -11,6 +11,6 @@ RUN sed -i '$s/$/\n}/' code.rs
 
 USER coder:coder
 
-CMD ["timeout", "20m", "/bin/sh", "-c", "rustc code.rs && /home/coder/code"]
+CMD ["timeout", "-t", "1200", "/bin/sh", "-c", "rustc code.rs && /home/coder/code"]
 
 USER root:root
